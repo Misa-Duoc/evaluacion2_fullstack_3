@@ -1,0 +1,35 @@
+/* ===== BOOTSTRAP BASE ===== */
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+/* ===== VARIABLES SMARTLOGIX ===== */
+:root {
+  --sl-primary: #7c3aed;
+  --sl-primary-dark: #6d28d9;
+  --sl-primary-light: #ede9fe;
+  --sl-sidebar-bg: #1e1b4b;
+  --sl-sidebar-text: #c4b5fd;
+  --sl-sidebar-active: #7c3aed;
+  --sl-sidebar-hover: rgba(124, 58, 237, 0.15);
+}
+
+/* ===== RESET GLOBAL ===== */
+body {
+  margin: 0;
+  background-color: #f8f7ff;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
+  text-align: left;
+  border: none;
+}
+
+h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1e1b4b;
+  margin: 0;
+}

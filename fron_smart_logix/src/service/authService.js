@@ -70,3 +70,30 @@ export function clearLogin() {
     localStorage.removeItem("token")
     localStorage.removeItem("user")
 }
+
+export async function register({ username, email, password }) {
+    const cleanUsername = username.trim()
+    const cleanEmail    = email.trim()
+    const cleanPassword = password.trim()
+
+    if (!cleanUsername) {
+        throw new Error("El nombre de usuario es obligatorio")
+    }
+    if (!cleanEmail) {
+        throw new Error("El email es obligatorio")
+    }
+    if (!cleanPassword) {
+        throw new Error("La contraseña es obligatoria")
+    }
+    if (cleanPassword.length < 6) {
+        throw new Error("La contraseña debe tener al menos 6 caracteres")
+    }
+
+    // El service valida antes de delegar al API.
+    const { registerRequest } = await import("../api/authApi")
+    return registerRequest({
+        username: cleanUsername,
+        email:    cleanEmail,
+        password: cleanPassword
+    })
+}

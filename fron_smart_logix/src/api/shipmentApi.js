@@ -8,3 +8,20 @@ export function getShipmentRequest(authorizationHeader) {
         }
     })
 }
+
+export function getShipmentByTrackingRequest(authorizationHeader, trackingCode) {
+    return httpRequest(`/api/shipments/${trackingCode}`, {
+        headers: {
+            Authorization: authorizationHeader
+        }
+    })
+}
+
+export function updateShipmentStatusRequest(authorizationHeader, trackingCode, status) {
+    return httpRequest(`/api/shipments/${trackingCode}/status?value=${status}`, {
+        method: "PATCH",
+        headers: {
+            Authorization: authorizationHeader
+        }
+    })
+}
