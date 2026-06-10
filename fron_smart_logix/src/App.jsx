@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react'
-import './App.css'
+import './styles/layout.css'
 import LoginPage from './pages/Login'
-import { clearLogin, getSaveToken } from './service/authService'
+import RegisterPage from './pages/register/Register'
+import { clearLogin, getSaveToken, getSaveUser } from './service/authService'
 import ShipmentsPage from './pages/Shipments'
 import OrderPage from './pages/Order'
 import InventoryPage from './pages/Inventory'
 
-
-
 const PRIVATE_ROUTER = [
-  { key: "shipment", label: "shipment", hash: "#/shipment" },
-  { key: "order", label: "order", hash: "#/order" },
-  { key: "inventory", label: "inventory", hash: "#/inventory" }
+  { key: "shipment",  label: "📦 Envíos",    hash: "#/shipment" },
+  { key: "order",     label: "🧾 Órdenes",   hash: "#/order" },
+  { key: "inventory", label: "🏭 Inventario", hash: "#/inventory" }
 ]
 
 function getRouterFromHash() {
@@ -19,8 +18,9 @@ function getRouterFromHash() {
 }
 
 function App() {
-  const [isLogin, setIsLogin] = useState(Boolean(getSaveToken()))
-  const [current, setCurrent] = useState(getRouterFromHash())
+  const [isLogin, setIsLogin]       = useState(Boolean(getSaveToken()))
+  const [showRegister, setShowRegister] = useState(false)
+  const [current, setCurrent]       = useState(getRouterFromHash())
 
   useEffect(() => {
     function handleHashChange() {
@@ -34,23 +34,16 @@ function App() {
   }, [])
 
   function renderPrivate() {
-    if (current === "shipment") {
-      return <ShipmentsPage />
-    }
-
-    if (current === "order") {
-      return <OrderPage />
-    }
-
-    if (current === "inventory") {
-      return <InventoryPage />
-    }
-
-    return <h1>Ruta no encontrada</h1>
+    if (current === "shipment")  return <ShipmentsPage />
+    if (current === "order")     return <OrderPage />
+    if (current === "inventory") return <InventoryPage />
+    return <p className="state-msg loading" style={{ margin: 32 }}>Selecciona una sección del menú.</p>
   }
 
   function handleLoginSucces() {
     setIsLogin(true)
+    setShowRegister(false)
+    window.location.hash = "#/shipment"
   }
 
   function handleLogout() {
@@ -58,37 +51,58 @@ function App() {
     setIsLogin(false)
   }
 
+  // Vista privada — usuario autenticado
   if (isLogin) {
+    const user = getSaveUser()
     return (
-      <div>
-        <aside>
-          <div>
-            <div>
-              <h2>Dashboard</h2>
-            </div>
-
-            <nav>
-              {PRIVATE_ROUTER.map((route) => (
-                <a
-                  key={route.key}
-                  href={route.hash}
-                >
-                  <span>{route.label}</span>
-                </a>
-              ))}
-            </nav>
+      <div className="app-layout">
+        <aside className="sidebar">
+          <div className="sidebar-brand">
+            <h2>SmartLogix</h2>
+            {user && <p className="sidebar-user">{user.username} — {user.role}</p>}
           </div>
-          
+
+          <nav className="sidebar-nav">
+            {PRIVATE_ROUTER.map((route) => (
+              <a
+                key={route.key}
+                href={route.hash}
+                className={current === route.key ? "active" : ""}
+              >
+                {route.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="sidebar-footer">
+            <button className="btn-logout" type="button" onClick={handleLogout}>
+              🚪 Cerrar sesión
+            </button>
+          </div>
         </aside>
 
-        <section>
+        <div className="main-content">
           {renderPrivate()}
-        </section>
+        </div>
       </div>
     )
   }
 
-  return <LoginPage handleLoginSucces={handleLoginSucces} />
+  // Vista pública — login o registro
+  if (showRegister) {
+    return (
+      <RegisterPage
+        handleRegisterSuccess={() => setShowRegister(false)}
+      />
+    )
+  }
+
+  return (
+    <LoginPage
+      handleLoginSucces={handleLoginSucces}
+      onGoToRegister={() => setShowRegister(true)}
+    />
+  )
 }
 
 export default App
