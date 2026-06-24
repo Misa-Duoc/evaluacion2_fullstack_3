@@ -1,4 +1,4 @@
-import { getShipmentRequest, getShipmentByTrackingRequest, updateShipmentStatusRequest } from "../api/shipmentApi"
+import { getShipmentRequest, getShipmentByTrackingRequest, updateShipmentStatusRequest, getDispatchPointsRequest } from "../api/shipmentApi"
 import { getRequiredAuthorizationHeader } from "./authService"
 
 export async function getShipment() {
@@ -15,4 +15,14 @@ export async function getShipmentByTracking(trackingCode) {
 export async function updateShipmentStatus(trackingCode, status) {
     const authorizationHeader = getRequiredAuthorizationHeader()
     return updateShipmentStatusRequest(authorizationHeader, trackingCode, status)
+}
+
+export async function getDispatchPoints(email) {
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanEmail) {
+        throw new Error("Ingrese un correo para consultar sus puntos")
+    }
+
+    const authorizationHeader = getRequiredAuthorizationHeader()
+    return getDispatchPointsRequest(authorizationHeader, cleanEmail)
 }

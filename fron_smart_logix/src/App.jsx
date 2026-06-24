@@ -6,11 +6,13 @@ import { clearLogin, getSaveToken, getSaveUser } from './service/authService'
 import ShipmentsPage from './pages/Shipments'
 import OrderPage from './pages/Order'
 import InventoryPage from './pages/Inventory'
+import DispatchPointsPage from './pages/DispatchPoints'
 
 const PRIVATE_ROUTER = [
   { key: "shipment",  label: "📦 Envíos",    hash: "#/shipment" },
   { key: "order",     label: "🧾 Órdenes",   hash: "#/order" },
-  { key: "inventory", label: "🏭 Inventario", hash: "#/inventory" }
+  { key: "inventory", label: "🏭 Inventario", hash: "#/inventory" },
+  { key: "points",    label: "⭐ Puntos",     hash: "#/points" }
 ]
 
 function getRouterFromHash() {
@@ -37,6 +39,7 @@ function App() {
     if (current === "shipment")  return <ShipmentsPage />
     if (current === "order")     return <OrderPage />
     if (current === "inventory") return <InventoryPage />
+    if (current === "points")    return <DispatchPointsPage />
     return <p className="state-msg loading" style={{ margin: 32 }}>Selecciona una sección del menú.</p>
   }
 

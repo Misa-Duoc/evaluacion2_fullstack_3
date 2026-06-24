@@ -1,5 +1,6 @@
 package com.smartlogix.shipment.service;
 
+import com.smartlogix.shipment.domain.DispatchPoints;
 import com.smartlogix.shipment.domain.Shipment;
 import com.smartlogix.shipment.domain.ShipmentStatus;
 import com.smartlogix.shipment.dto.CreateShipmentRequest;
@@ -22,13 +23,16 @@ public class ShipmentService {
 
     private final ShipmentRepository repository;
     private final ShipmentPlanFactoryResolver planFactoryResolver;
+    private final DispatchPointsService dispatchPointsService;
 
     public ShipmentService(
             ShipmentRepository repository,
-            ShipmentPlanFactoryResolver planFactoryResolver
+            ShipmentPlanFactoryResolver planFactoryResolver,
+            DispatchPointsService dispatchPointsService
     ) {
         this.repository = repository;
         this.planFactoryResolver = planFactoryResolver;
+        this.dispatchPointsService = dispatchPointsService;
     }
 
     public ShipmentResponse createShipment(CreateShipmentRequest request) {
@@ -39,6 +43,7 @@ public class ShipmentService {
 
         Shipment shipment = new Shipment();
         shipment.setOrderNumber(request.orderNumber().trim().toUpperCase());
+        shipment.setCustomerEmail(request.customerEmail().trim().toLowerCase(Locale.ROOT));
         shipment.setDestinationAddress(destinationAddress);
         shipment.setTotalUnits(request.totalUnits());
         shipment.setCarrier(shipmentPlan.carrier());
@@ -47,7 +52,12 @@ public class ShipmentService {
         shipment.setStatus(ShipmentStatus.PLANNED);
         shipment.setTrackingCode("SLX-" + UUID.randomUUID().toString().substring(0, 10).toUpperCase());
 
-        return toResponse(repository.save(shipment));
+        Shipment savedShipment = repository.save(shipment);
+
+        // Cada despacho creado suma (o inicializa) los puntosDespacho del correo asociado.
+        DispatchPoints points = dispatchPointsService.registerDispatch(savedShipment.getCustomerEmail());
+
+        return toResponse(savedShipment, points.getPuntosDespacho());
     }
 
     @Transactional(readOnly = true)
@@ -72,14 +82,21 @@ public class ShipmentService {
     }
 
     private ShipmentResponse toResponse(Shipment shipment) {
+        int currentPoints = dispatchPointsService.findCurrentPoints(shipment.getCustomerEmail());
+        return toResponse(shipment, currentPoints);
+    }
+
+    private ShipmentResponse toResponse(Shipment shipment, int puntosDespacho) {
         return new ShipmentResponse(
                 shipment.getTrackingCode(),
                 shipment.getOrderNumber(),
+                shipment.getCustomerEmail(),
                 shipment.getCarrier(),
                 shipment.getRouteCode(),
                 shipment.getEstimatedDeliveryDate(),
                 shipment.getStatus(),
-                shipment.getCreatedAt()
+                shipment.getCreatedAt(),
+                puntosDespacho
         );
     }
 }
