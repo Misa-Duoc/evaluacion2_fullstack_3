@@ -70,7 +70,7 @@ public class OrderService {
         order.setStatus(OrderStatus.APPROVED);
 
         ShipmentResponse shipmentResponse = shipmentClient.requestShipment(
-                new ShipmentRequest(order.getOrderNumber(), order.getShippingAddress(), totalUnits(order))
+                new ShipmentRequest(order.getOrderNumber(), order.getCustomerEmail(), order.getShippingAddress(), totalUnits(order))
         );
 
         if (shipmentResponse == null || shipmentResponse.trackingCode() == null) {

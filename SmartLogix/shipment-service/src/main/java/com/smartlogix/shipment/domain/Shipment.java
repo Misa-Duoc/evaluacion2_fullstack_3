@@ -26,6 +26,9 @@ public class Shipment {
     @Column(nullable = false, length = 60)
     private String orderNumber;
 
+    @Column(nullable = false, length = 120)
+    private String customerEmail;
+
     @Column(nullable = false, length = 255)
     private String destinationAddress;
 
@@ -71,6 +74,14 @@ public class Shipment {
 
     public void setOrderNumber(String orderNumber) {
         this.orderNumber = orderNumber;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 
     public String getDestinationAddress() {

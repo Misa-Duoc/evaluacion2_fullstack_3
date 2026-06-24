@@ -67,10 +67,12 @@ function ShipmentsPage() {
             <tr>
                 <td><strong>{item.trackingCode}</strong></td>
                 <td>{item.orderNumber}</td>
+                <td style={{ fontSize: "0.78rem" }}>{item.customerEmail}</td>
                 <td>{item.carrier}</td>
                 <td>{item.routeCode}</td>
                 <td style={{ fontSize: "0.78rem" }}>{item.estimatedDeliveryDate}</td>
                 <td>{statusBadge(item.status)}</td>
+                <td style={{ textAlign: "center" }}>⭐ {item.puntosDespacho}</td>
                 <td>
                     <select value={item.status} onChange={(e) => handleStatusChange(item.trackingCode, e.target.value)}>
                         {SHIPMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -83,8 +85,8 @@ function ShipmentsPage() {
     const tableHeader = (
         <thead>
             <tr>
-                <th>Tracking</th><th>N° Orden</th><th>Carrier</th>
-                <th>Ruta</th><th>Entrega estimada</th><th>Estado</th><th>Cambiar estado</th>
+                <th>Tracking</th><th>N° Orden</th><th>Email cliente</th><th>Carrier</th>
+                <th>Ruta</th><th>Entrega estimada</th><th>Estado</th><th>Puntos</th><th>Cambiar estado</th>
             </tr>
         </thead>
     )

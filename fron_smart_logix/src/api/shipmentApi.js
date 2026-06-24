@@ -25,3 +25,12 @@ export function updateShipmentStatusRequest(authorizationHeader, trackingCode, s
         }
     })
 }
+
+// Consulta los puntosDespacho acumulados para un correo especifico.
+export function getDispatchPointsRequest(authorizationHeader, email) {
+    return httpRequest(`/api/shipments/points/${encodeURIComponent(email)}`, {
+        headers: {
+            Authorization: authorizationHeader
+        }
+    })
+}
