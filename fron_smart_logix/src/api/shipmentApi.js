@@ -44,13 +44,78 @@ export function getRewardCatalogRequest(authorizationHeader) {
     })
 }
 
-// Canjea los puntosDespacho de un correo por el descuento elegido.
-export function redeemPointsRequest(authorizationHeader, email, rewardType) {
+// Canjea los puntosDespacho de un correo por el descuento elegido. Si se entrega
+// trackingCode, el backend fija el descuento a ESE envio exacto.
+export function redeemPointsRequest(authorizationHeader, email, rewardType, trackingCode) {
     return httpRequest(`/api/shipments/points/${encodeURIComponent(email)}/redeem`, {
         method: "POST",
         headers: {
             Authorization: authorizationHeader
         },
-        body: JSON.stringify({ rewardType })
+        body: JSON.stringify({ rewardType, trackingCode: trackingCode ?? null })
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Cupones de descuento de envio por codigo (antes en couponStorage.js).
+// Toda la logica vive ahora en el backend (shipment-service).
+// ---------------------------------------------------------------------------
+
+// Catalogo de cupones validos + valor fijo de envio.
+export function getCouponCatalogRequest(authorizationHeader) {
+    return httpRequest("/api/shipments/coupons/catalog", {
+        headers: {
+            Authorization: authorizationHeader
+        }
+    })
+}
+
+// Lista todos los cupones registrados (pagina "Descuento").
+export function listCouponsRequest(authorizationHeader) {
+    return httpRequest("/api/shipments/coupons", {
+        headers: {
+            Authorization: authorizationHeader
+        }
+    })
+}
+
+// Estado de uso del cupon de un correo (pagina "Ordenes").
+export function getCouponUsageRequest(authorizationHeader, email) {
+    return httpRequest(`/api/shipments/coupons/${encodeURIComponent(email)}`, {
+        headers: {
+            Authorization: authorizationHeader
+        }
+    })
+}
+
+// Asocia un cupon a un correo.
+export function registerCouponRequest(authorizationHeader, email, coupon) {
+    return httpRequest("/api/shipments/coupons", {
+        method: "POST",
+        headers: {
+            Authorization: authorizationHeader
+        },
+        body: JSON.stringify({ email, coupon })
+    })
+}
+
+// Aplica el cupon disponible de un correo a un envio (exacto si se entrega trackingCode).
+export function applyCouponRequest(authorizationHeader, email, trackingCode) {
+    return httpRequest(`/api/shipments/coupons/${encodeURIComponent(email)}/apply`, {
+        method: "POST",
+        headers: {
+            Authorization: authorizationHeader
+        },
+        body: JSON.stringify({ trackingCode: trackingCode ?? null })
+    })
+}
+
+// Quita el cupon de un correo.
+export function removeCouponRequest(authorizationHeader, email) {
+    return httpRequest(`/api/shipments/coupons/${encodeURIComponent(email)}`, {
+        method: "DELETE",
+        headers: {
+            Authorization: authorizationHeader
+        }
     })
 }

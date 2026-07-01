@@ -48,6 +48,32 @@ public class Shipment {
     @Column(nullable = false, length = 30)
     private ShipmentStatus status;
 
+    // Valor base del envio (en CLP). Antes se calculaba en el frontend a partir
+    // de un hash del trackingCode; ahora se genera y persiste en el backend para
+    // que sea estable y no manipulable desde el cliente.
+    @Column(nullable = false)
+    private int baseValue;
+
+    // Valor final del envio una vez aplicado un eventual descuento (por puntos)
+    // o cupon (por codigo). Si no hay descuento, es igual a baseValue.
+    @Column(nullable = false)
+    private int finalValue;
+
+    // Codigo del cupon aplicado a ESTE envio (ALUMNODUOC, ENVIOGRATIS, FREECODE),
+    // si corresponde. El cupon deja el envio en un valor fijo.
+    @Column(length = 40)
+    private String appliedCouponCode;
+
+    // Descuento por puntos aplicado a ESTE envio (DESCUENTO_20, DESCUENTO_50,
+    // ENVIO_GRATIS), si corresponde. Se traduce en un porcentaje sobre baseValue.
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private RewardType appliedRewardType;
+
+    // Texto descriptivo del descuento/cupon aplicado, para mostrar en la UI.
+    @Column(length = 120)
+    private String discountDescription;
+
     @Column(nullable = false)
     private OffsetDateTime createdAt;
 
@@ -130,6 +156,46 @@ public class Shipment {
 
     public void setStatus(ShipmentStatus status) {
         this.status = status;
+    }
+
+    public int getBaseValue() {
+        return baseValue;
+    }
+
+    public void setBaseValue(int baseValue) {
+        this.baseValue = baseValue;
+    }
+
+    public int getFinalValue() {
+        return finalValue;
+    }
+
+    public void setFinalValue(int finalValue) {
+        this.finalValue = finalValue;
+    }
+
+    public String getAppliedCouponCode() {
+        return appliedCouponCode;
+    }
+
+    public void setAppliedCouponCode(String appliedCouponCode) {
+        this.appliedCouponCode = appliedCouponCode;
+    }
+
+    public RewardType getAppliedRewardType() {
+        return appliedRewardType;
+    }
+
+    public void setAppliedRewardType(RewardType appliedRewardType) {
+        this.appliedRewardType = appliedRewardType;
+    }
+
+    public String getDiscountDescription() {
+        return discountDescription;
+    }
+
+    public void setDiscountDescription(String discountDescription) {
+        this.discountDescription = discountDescription;
     }
 
     public OffsetDateTime getCreatedAt() {

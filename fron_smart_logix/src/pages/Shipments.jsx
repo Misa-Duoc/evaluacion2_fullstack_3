@@ -1,68 +1,12 @@
 import { useEffect, useState } from "react";
 import { getShipment, getShipmentByTracking, updateShipmentStatus, getRewardCatalog } from "../service/shipmentService";
-import { getSaveUser } from "../service/authService";
-import { resolveDiscountsForShipments, getAppliedDiscounts } from "../utils/discountStorage";
+import { getSaveUser, isAdmin } from "../service/authService";
 import "../styles/components.css"
 
 const SHIPMENT_STATUSES = ["PLANNED", "PICKED_UP", "IN_TRANSIT", "DELIVERED"]
 
-// Porcentaje de descuento segun el tipo de canje (debe reflejar las reglas
-// de RewardType.java en shipment-service).
-const DISCOUNT_PERCENT_BY_REWARD = {
-    DESCUENTO_20: 20,
-    DESCUENTO_50: 50,
-    ENVIO_GRATIS: 100
-}
-
 function formatCLP(value) {
     return value.toLocaleString("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 })
-}
-
-// Genera un valor de envio pseudoaleatorio pero estable para cada
-// trackingCode (entre $1.000 y $10.000), para no estar simulando montos
-// distintos en cada renderizado.
-function baseValueForTracking(trackingCode) {
-    let hash = 0
-    for (let i = 0; i < trackingCode.length; i++) {
-        hash = (hash << 5) - hash + trackingCode.charCodeAt(i)
-        hash |= 0
-    }
-    const positiveHash = Math.abs(hash)
-    const value = 1000 + (positiveHash % 9001) // rango 1000 - 10000
-    return Math.round(value / 10) * 10
-}
-
-// Calcula el "valor envio" de cada despacho y, si el correo del cliente
-// tiene un descuento canjeado, lo aplica al envio que le corresponda
-// (ver resolveDiscountsForShipments en discountStorage.js). El descuento
-// queda fijo en ese trackingCode y se sigue mostrando en cada recarga.
-//
-// Blindaje: si el tipo de descuento no es uno de los conocidos (por
-// ejemplo, datos viejos guardados en localStorage de una version
-// anterior), se ignora por completo en vez de aplicar un porcentaje
-// invalido. Ademas, el valor final nunca puede superar al valor base
-// (un descuento jamas debe aumentar el precio).
-function computeShipmentValues(shipments) {
-    const discountsByTrackingCode = resolveDiscountsForShipments(shipments)
-    const valuesMap = {}
-
-    shipments.forEach((item) => {
-        const base = baseValueForTracking(item.trackingCode)
-        const descuento = discountsByTrackingCode[item.trackingCode]
-        const percent = descuento ? DISCOUNT_PERCENT_BY_REWARD[descuento.rewardType] : undefined
-
-        if (descuento && typeof percent === "number") {
-            const final = Math.min(base, Math.max(0, Math.round(base * (1 - percent / 100))))
-            valuesMap[item.trackingCode] = { base, final, descuentoAplicado: descuento }
-        } else {
-            if (descuento) {
-                console.warn(`Descuento con rewardType desconocido para ${item.trackingCode}:`, descuento)
-            }
-            valuesMap[item.trackingCode] = { base, final: base, descuentoAplicado: null }
-        }
-    })
-
-    return valuesMap
 }
 
 function ShipmentsPage() {
@@ -77,17 +21,19 @@ function ShipmentsPage() {
     const [searchLoading, setSearchLoading]   = useState(false);
     const [statusMessage, setStatusMessage]   = useState("");
     const [minRewardCost, setMinRewardCost]   = useState(null);
-    const [shipmentValues, setShipmentValues] = useState({});
 
     const user = getSaveUser();
+    // El rol USER solo puede visualizar los envíos (sin cambiar estado ni canjear).
+    const admin = isAdmin();
 
     useEffect(() => {
         async function loadShipment() {
             setLoading(true); setError("");
             try {
+                // El valor del envio y cualquier descuento/cupon ya vienen
+                // calculados desde el backend; el frontend solo los muestra.
                 const response = await getShipment();
                 setShipments(response);
-                setShipmentValues(computeShipmentValues(response));
             } catch (error) {
                 setError(error.message);
             } finally {
@@ -96,8 +42,8 @@ function ShipmentsPage() {
         }
         loadShipment();
 
-        // Se carga el catalogo de canjes para saber, por correo, si ya
-        // acumulo puntosDespacho suficientes para algun descuento.
+        // El catálogo de canjes (endpoint solo-admin) únicamente se consulta si el
+        // usuario es administrador; sirve para decidir si mostrar el botón "Canjear".
         async function loadCatalog() {
             try {
                 const catalog = await getRewardCatalog()
@@ -108,26 +54,16 @@ function ShipmentsPage() {
                 // Si falla la carga del catalogo, simplemente no se muestra el boton de canje.
             }
         }
-        loadCatalog();
-    }, []);
+        if (admin) {
+            loadCatalog();
+        }
+    }, [admin]);
 
     async function handleSearch(event) {
         event.preventDefault(); setSearchMessage(""); setSearchResult(null); setSearchLoading(true);
         try {
             const result = await getShipmentByTracking(trackingSearch.trim())
             setSearchResult(result)
-            // Si aun no se tiene calculado el valor de este envio, se calcula
-            // ahora, revisando si ya tiene un descuento fijado a su trackingCode.
-            setShipmentValues((prev) => {
-                if (prev[result.trackingCode]) return prev
-                const base = baseValueForTracking(result.trackingCode)
-                const aplicados = getAppliedDiscounts()
-                const descuento = Object.values(aplicados).find((d) => d.trackingCode === result.trackingCode)
-                const percent = descuento ? DISCOUNT_PERCENT_BY_REWARD[descuento.rewardType] : undefined
-                const esValido = descuento && typeof percent === "number"
-                const final = esValido ? Math.min(base, Math.max(0, Math.round(base * (1 - percent / 100)))) : base
-                return { ...prev, [result.trackingCode]: { base, final, descuentoAplicado: esValido ? descuento : null } }
-            })
         } catch (error) {
             setSearchMessage(error.message)
         } finally {
@@ -151,11 +87,9 @@ function ShipmentsPage() {
         return <span className={`badge-status badge-${status}`}>{status}</span>
     }
 
-    // Lleva al usuario a "Canje de ptos" dejando precargado el correo del
-    // cliente Y el envio exacto desde el que se hizo clic, para que el
-    // descuento se fije a ESA misma fila. Ademas deja una marca para que,
-    // una vez canjeado, se vuelva automaticamente a "Envios" y se vea el
-    // descuento aplicado al instante en ese envio.
+    // Lleva al usuario a "Canje de ptos" dejando precargado el correo del cliente
+    // Y el envio exacto desde el que se hizo clic, para que el descuento se fije
+    // a ESA misma fila. Estas marcas son solo navegacion entre pantallas.
     function goToRedeem(item) {
         localStorage.setItem("redeemPrefillEmail", item.customerEmail)
         localStorage.setItem("redeemPrefillTracking", item.trackingCode)
@@ -163,9 +97,76 @@ function ShipmentsPage() {
         window.location.hash = "#/redeem"
     }
 
+    // Celda "Valor envío": muestra el valor final que entrega el backend y, si
+    // hubo descuento (cupon o puntos), tacha el valor base.
+    function valueCell(item) {
+        const base = item.baseValue
+        const final = item.finalValue
+        const tieneDescuento = base != null && final != null && final < base
+        const cuponAplicado = Boolean(item.appliedCouponCode)
+        const descuentoAplicado = Boolean(item.appliedRewardType)
+
+        if (final == null) return "—"
+
+        if (cuponAplicado || (tieneDescuento && !descuentoAplicado)) {
+            return (
+                <div style={{ lineHeight: 1.3 }}>
+                    <span style={{ textDecoration: "line-through", color: "#9ca3af", fontSize: "0.75rem" }}>
+                        {formatCLP(base)}
+                    </span>
+                    <br />
+                    <strong style={{ color: "#15803d" }}>{formatCLP(final)}</strong>
+                </div>
+            )
+        }
+
+        if (descuentoAplicado) {
+            return (
+                <div style={{ lineHeight: 1.3 }}>
+                    <span style={{ textDecoration: "line-through", color: "#9ca3af", fontSize: "0.75rem" }}>
+                        {formatCLP(base)}
+                    </span>
+                    <br />
+                    <strong style={{ color: "#15803d" }}>{formatCLP(final)}</strong>
+                    {item.discountDescription && (
+                        <>
+                            <br />
+                            <span style={{ fontSize: "0.7rem", color: "#15803d" }}>
+                                🏷️ {item.discountDescription}
+                            </span>
+                        </>
+                    )}
+                </div>
+            )
+        }
+
+        return formatCLP(final)
+    }
+
+    // Celda "Descuento": muestra el cupon por codigo aplicado, si lo hay.
+    function discountCell(item) {
+        if (!item.appliedCouponCode) {
+            return <span style={{ color: "#9ca3af" }}>—</span>
+        }
+        return (
+            <div style={{ lineHeight: 1.35 }}>
+                <span
+                    className="badge-status"
+                    style={{ background: "#dcfce7", color: "#15803d", display: "inline-block" }}
+                    title={item.discountDescription ?? ""}
+                >
+                    🎟️ {item.appliedCouponCode}
+                </span>
+                <br />
+                <span style={{ fontSize: "0.68rem", color: "#15803d", fontWeight: 600 }}>
+                    ✓ Cupón utilizado
+                </span>
+            </div>
+        )
+    }
+
     function ShipmentRow({ item }) {
         const tieneDescuentoDisponible = minRewardCost !== null && item.puntosDespacho >= minRewardCost
-        const valor = shipmentValues[item.trackingCode]
         return (
             <tr>
                 <td><strong>{item.trackingCode}</strong></td>
@@ -176,30 +177,19 @@ function ShipmentsPage() {
                 <td style={{ fontSize: "0.78rem" }}>{item.estimatedDeliveryDate}</td>
                 <td>{statusBadge(item.status)}</td>
                 <td style={{ textAlign: "center" }}>⭐ {item.puntosDespacho}</td>
-                <td style={{ textAlign: "center" }}>
-                    {valor && valor.descuentoAplicado ? (
-                        <div style={{ lineHeight: 1.3 }}>
-                            <span style={{ textDecoration: "line-through", color: "#9ca3af", fontSize: "0.75rem" }}>
-                                {formatCLP(valor.base)}
-                            </span>
-                            <br />
-                            <strong style={{ color: "#15803d" }}>{formatCLP(valor.final)}</strong>
-                            <br />
-                            <span style={{ fontSize: "0.7rem", color: "#15803d" }}>
-                                🏷️ {valor.descuentoAplicado.descripcion}
-                            </span>
-                        </div>
+                <td style={{ textAlign: "center" }}>{valueCell(item)}</td>
+                <td style={{ textAlign: "center" }}>{discountCell(item)}</td>
+                <td>
+                    {admin ? (
+                        <select value={item.status} onChange={(e) => handleStatusChange(item.trackingCode, e.target.value)}>
+                            {SHIPMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
                     ) : (
-                        valor ? formatCLP(valor.final) : "—"
+                        <span style={{ color: "#9ca3af", fontSize: "0.78rem" }}>Solo lectura</span>
                     )}
                 </td>
-                <td>
-                    <select value={item.status} onChange={(e) => handleStatusChange(item.trackingCode, e.target.value)}>
-                        {SHIPMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                </td>
                 <td style={{ textAlign: "center" }}>
-                    {tieneDescuentoDisponible && (
+                    {admin && tieneDescuentoDisponible && (
                         <button
                             className="btn-sl-primary"
                             type="button"
@@ -209,6 +199,7 @@ function ShipmentsPage() {
                             🎁 Canjear
                         </button>
                     )}
+                    {!admin && <span style={{ color: "#9ca3af" }}>—</span>}
                 </td>
             </tr>
         )
@@ -218,7 +209,7 @@ function ShipmentsPage() {
         <thead>
             <tr>
                 <th>Tracking</th><th>N° Orden</th><th>Email cliente</th><th>Carrier</th>
-                <th>Ruta</th><th>Entrega estimada</th><th>Estado</th><th>Puntos</th><th>Valor envío</th><th>Cambiar estado</th><th>Canjear</th>
+                <th>Ruta</th><th>Entrega estimada</th><th>Estado</th><th>Puntos</th><th>Valor envío</th><th>Descuento</th><th>Cambiar estado</th><th>Canjear</th>
             </tr>
         </thead>
     )

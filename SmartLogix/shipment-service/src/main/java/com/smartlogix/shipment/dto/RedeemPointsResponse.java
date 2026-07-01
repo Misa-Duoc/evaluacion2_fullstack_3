@@ -6,6 +6,8 @@ public record RedeemPointsResponse(
         String descripcion,
         int puntosUsados,
         int puntosRestantes,
-        String mensaje
+        String mensaje,
+        String appliedTrackingCode,
+        Integer valorEnvioFinal
 ) {
 }

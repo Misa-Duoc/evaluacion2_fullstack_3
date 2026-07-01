@@ -13,6 +13,11 @@ public record ShipmentResponse(
         LocalDate estimatedDeliveryDate,
         ShipmentStatus status,
         OffsetDateTime createdAt,
-        Integer puntosDespacho
+        Integer puntosDespacho,
+        Integer baseValue,
+        Integer finalValue,
+        String appliedCouponCode,
+        String appliedRewardType,
+        String discountDescription
 ) {
 }

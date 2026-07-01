@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { getRewardCatalog, redeemPoints, getDispatchPoints } from "../service/shipmentService";
-import { setPendingDiscount, setAppliedDiscountForTracking } from "../utils/discountStorage";
 import { getSaveUser } from "../service/authService";
 import "../styles/components.css"
 
@@ -33,9 +32,10 @@ function CanjePuntosPage() {
                 const response = await getRewardCatalog()
                 setCatalog(response)
 
-                // Si se llego desde "Envios" con un correo precargado
-                // (boton "Canjear"), se completa el campo y se consulta
-                // de inmediato que opciones tiene disponibles.
+                // Si se llego desde "Envios" con un correo precargado (boton
+                // "Canjear"), se completa el campo y se consulta de inmediato.
+                // Estas marcas son SOLO navegacion entre pantallas; el descuento
+                // en si lo fija el backend al canjear.
                 const prefillEmail = localStorage.getItem("redeemPrefillEmail")
                 const prefillTracking = localStorage.getItem("redeemPrefillTracking")
                 if (prefillEmail) {
@@ -45,9 +45,6 @@ function CanjePuntosPage() {
                     if (prefillTracking) setTargetTracking(prefillTracking)
                     checkPointsAvailability(prefillEmail, response)
                 } else {
-                    // Navegación manual a "Canje de ptos" (no se llegó desde el
-                    // botón "Canjear" de un envío): no se debe redirigir ni fijar
-                    // a un envío concreto, así que se limpian las marcas viejas.
                     localStorage.removeItem("redeemReturnToShipment")
                     localStorage.removeItem("redeemPrefillTracking")
                 }
@@ -104,9 +101,7 @@ function CanjePuntosPage() {
             const response = await getDispatchPoints(cleanEmail);
             setPoints(response);
             setAvailabilityMessage(buildAvailabilityMessage(response.puntosDespacho, catalogList));
-        } catch (error) {
-            // Si el correo aun no tiene puntosDespacho registrados, se informa
-            // que parte desde 0 y por lo tanto no tiene canjes disponibles aun.
+        } catch {
             setPoints({ puntosDespacho: 0, totalDespachos: 0 });
             setAvailabilityMessage(buildAvailabilityMessage(0, catalogList));
         } finally {
@@ -117,24 +112,17 @@ function CanjePuntosPage() {
     async function handleRedeem(rewardType) {
         setMessage(""); setLastResult(null); setRedeemingType(rewardType);
         try {
-            const response = await redeemPoints(email, rewardType)
+            // El canje descuenta los puntos Y fija el descuento al envio en el
+            // backend. Si se llego desde el boton "Canjear" de un envio especifico,
+            // se pasa su trackingCode para fijarlo a ESA fila; si no, el backend
+            // lo aplica al envio mas reciente no entregado del correo.
+            const response = await redeemPoints(email, rewardType, targetTracking)
             setLastResult(response)
             setMessage(response.mensaje)
             setMessageType("success")
 
-            // Si se llego aqui desde el boton "Canjear" de un envio especifico,
-            // el descuento se fija DIRECTAMENTE a ese envio (su trackingCode),
-            // para que al volver a "Envios" se vea en esa misma fila. Si se llego
-            // de forma manual, queda como pendiente del proximo envio del correo.
-            if (targetTracking) {
-                setAppliedDiscountForTracking(email, targetTracking, { rewardType: response.rewardType, descripcion: response.descripcion })
-            } else {
-                setPendingDiscount(email, { rewardType: response.rewardType, descripcion: response.descripcion })
-            }
-
-            // Si se llego aqui desde el boton "Canjear" de un envio especifico,
-            // tras canjear se vuelve automaticamente a la pagina de "Envios"
-            // para ver el descuento ya aplicado de manera inmediata.
+            // Si se llego desde el boton "Canjear" de un envio, se vuelve a
+            // "Envios" para ver el descuento ya aplicado de inmediato.
             const volverAEnvios = localStorage.getItem("redeemReturnToShipment") === "true"
             if (volverAEnvios) {
                 localStorage.removeItem("redeemReturnToShipment")
@@ -147,8 +135,7 @@ function CanjePuntosPage() {
             setMessage(response.mensaje)
             setMessageType("success")
 
-            // Tras canjear, el saldo de puntos cambia: se recalcula el
-            // mensaje de opciones disponibles con el nuevo saldo.
+            // Tras canjear, el saldo de puntos cambia: se recalcula el mensaje.
             setPoints({ puntosDespacho: response.puntosRestantes, totalDespachos: points?.totalDespachos ?? 0 })
             setAvailabilityMessage(buildAvailabilityMessage(response.puntosRestantes, catalog))
         } catch (error) {

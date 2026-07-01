@@ -3,6 +3,7 @@ package com.smartlogix.shipment.service;
 import com.smartlogix.shipment.domain.DispatchPoints;
 import com.smartlogix.shipment.domain.RewardRedemption;
 import com.smartlogix.shipment.domain.RewardType;
+import com.smartlogix.shipment.domain.Shipment;
 import com.smartlogix.shipment.dto.RedeemPointsResponse;
 import com.smartlogix.shipment.dto.RewardCatalogItem;
 import com.smartlogix.shipment.exception.InsufficientPointsException;
@@ -22,10 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
  *  - 50% de descuento en envios  -> 20 puntos.
  *  - Envio gratis                -> 25 puntos.
  *
- * Si el correo no cuenta con el puntaje suficiente se informa mediante
- * InsufficientPointsException ("No cuenta con el puntaje suficiente").
- * Si el canje se concreta, se descuentan los puntos usados y se informa
- * exito ("Su descuento se a conseguido con exito").
+ * Ademas de descontar los puntos, el canje ahora FIJA el descuento al envio
+ * correspondiente en el backend (antes esto se hacia en el frontend con
+ * localStorage). Asi, el valor final del envio queda calculado y persistido
+ * del lado del servidor.
  */
 @Service
 @Transactional
@@ -33,13 +34,16 @@ public class RewardRedemptionService {
 
     private final DispatchPointsRepository dispatchPointsRepository;
     private final RewardRedemptionRepository rewardRedemptionRepository;
+    private final ShipmentService shipmentService;
 
     public RewardRedemptionService(
             DispatchPointsRepository dispatchPointsRepository,
-            RewardRedemptionRepository rewardRedemptionRepository
+            RewardRedemptionRepository rewardRedemptionRepository,
+            ShipmentService shipmentService
     ) {
         this.dispatchPointsRepository = dispatchPointsRepository;
         this.rewardRedemptionRepository = rewardRedemptionRepository;
+        this.shipmentService = shipmentService;
     }
 
     /**
@@ -53,7 +57,7 @@ public class RewardRedemptionService {
         );
     }
 
-    public RedeemPointsResponse redeem(String email, RewardType rewardType) {
+    public RedeemPointsResponse redeem(String email, RewardType rewardType, String trackingCode) {
         String normalizedEmail = normalize(email);
 
         DispatchPoints points = dispatchPointsRepository.findByEmail(normalizedEmail)
@@ -74,13 +78,28 @@ public class RewardRedemptionService {
         redemption.setPuntosUsados(rewardType.getCostoEnPuntos());
         rewardRedemptionRepository.save(redemption);
 
+        // Fija el descuento al envio correspondiente del correo (al exacto si se
+        // entrego trackingCode; si no, al mas reciente no entregado). El valor
+        // final del envio se recalcula y persiste en el backend.
+        String appliedTrackingCode = null;
+        Integer valorEnvioFinal = null;
+        Shipment target = shipmentService.resolveTargetShipment(normalizedEmail, trackingCode);
+        if (target != null) {
+            Shipment updated = shipmentService.applyRewardToShipment(
+                    target, rewardType, rewardType.getDescripcion());
+            appliedTrackingCode = updated.getTrackingCode();
+            valorEnvioFinal = updated.getFinalValue();
+        }
+
         return new RedeemPointsResponse(
                 normalizedEmail,
                 rewardType.name(),
                 rewardType.getDescripcion(),
                 rewardType.getCostoEnPuntos(),
                 points.getPuntosDespacho(),
-                "Su descuento se a conseguido con exito"
+                "Su descuento se a conseguido con exito",
+                appliedTrackingCode,
+                valorEnvioFinal
         );
     }
 
