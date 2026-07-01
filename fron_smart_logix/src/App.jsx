@@ -7,12 +7,14 @@ import ShipmentsPage from './pages/Shipments'
 import OrderPage from './pages/Order'
 import InventoryPage from './pages/Inventory'
 import DispatchPointsPage from './pages/DispatchPoints'
+import CanjePuntosPage from './pages/CanjePuntos'
 
 const PRIVATE_ROUTER = [
   { key: "shipment",  label: "📦 Envíos",    hash: "#/shipment" },
   { key: "order",     label: "🧾 Órdenes",   hash: "#/order" },
   { key: "inventory", label: "🏭 Inventario", hash: "#/inventory" },
-  { key: "points",    label: "⭐ Puntos",     hash: "#/points" }
+  { key: "points",    label: "⭐ Puntos",     hash: "#/points" },
+  { key: "redeem",    label: "🎁 Canje de ptos", hash: "#/redeem" }
 ]
 
 function getRouterFromHash() {
@@ -40,6 +42,7 @@ function App() {
     if (current === "order")     return <OrderPage />
     if (current === "inventory") return <InventoryPage />
     if (current === "points")    return <DispatchPointsPage />
+    if (current === "redeem")    return <CanjePuntosPage />
     return <p className="state-msg loading" style={{ margin: 32 }}>Selecciona una sección del menú.</p>
   }
 

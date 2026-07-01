@@ -224,6 +224,11 @@
   color: #15803d;
 }
 
+.state-msg.info {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 /* ===== BADGES DE ESTADO ===== */
 .badge-status {
   display: inline-block;

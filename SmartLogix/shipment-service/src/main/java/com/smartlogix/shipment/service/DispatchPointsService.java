@@ -12,8 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
  * Maneja el acumulado de "puntosDespacho" asociado a un correo.
  *
  * Regla de negocio (definida por el cliente):
- *  - Valor inicial de puntosDespacho: 0.
- *  - Cada vez que el mismo correo realiza un nuevo despacho, puntosDespacho se incrementa en +5.
+ *  - Desde el primer despacho que realiza un correo, se otorgan +5 puntosDespacho.
+ *  - Cada despacho adicional que realice ese mismo correo vuelve a sumar +5 puntos.
  */
 @Service
 @Transactional
@@ -43,10 +43,8 @@ public class DispatchPointsService {
                     return newRecord;
                 });
 
-        if (points.getId() != null) {
-            // El correo ya tenia despachos previos: se repite -> suma puntos.
-            points.setPuntosDespacho(points.getPuntosDespacho() + POINTS_PER_REPEATED_DISPATCH);
-        }
+        // Desde el primer despacho del correo ya se generan puntosDespacho.
+        points.setPuntosDespacho(points.getPuntosDespacho() + POINTS_PER_REPEATED_DISPATCH);
         points.setTotalDespachos(points.getTotalDespachos() + 1);
 
         return repository.save(points);
