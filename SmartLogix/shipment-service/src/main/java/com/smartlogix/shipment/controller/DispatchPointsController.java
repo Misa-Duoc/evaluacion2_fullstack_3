@@ -50,15 +50,15 @@ public class DispatchPointsController {
     }
 
     /**
-     * Canjea los puntosDespacho del correo indicado por el descuento elegido.
-     * Si no cuenta con el puntaje suficiente, se responde 400 con el mensaje
-     * "No cuenta con el puntaje suficiente".
+     * Canjea los puntosDespacho del correo indicado por el descuento elegido y
+     * fija el descuento al envio correspondiente. Si no cuenta con el puntaje
+     * suficiente, se responde 400 con "No cuenta con el puntaje suficiente".
      */
     @PostMapping("/{email}/redeem")
     public RedeemPointsResponse redeem(
             @PathVariable String email,
             @Valid @RequestBody RedeemPointsRequest request
     ) {
-        return rewardRedemptionService.redeem(email, request.rewardType());
+        return rewardRedemptionService.redeem(email, request.rewardType(), request.trackingCode());
     }
 }

@@ -28,7 +28,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
-                        .requestMatchers("/api/**").authenticated()
+                        // Todas las operaciones de este microservicio requieren rol ADMIN.
+                        // El rol USER solo puede ingresar cupones y visualizar envios
+                        // (funcionalidad expuesta por el shipment-service). Las llamadas
+                        // internas entre servicios viajan con el token del administrador.
+                        .requestMatchers("/api/**").hasRole("ADMIN")
                         .anyRequest().denyAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

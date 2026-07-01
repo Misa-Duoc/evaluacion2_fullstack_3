@@ -44,6 +44,16 @@ export function getSaveUser() {
     }
 }
 
+// Devuelve el rol del usuario en sesión (p. ej. "ROLE_ADMIN" | "ROLE_USER").
+export function getUserRole() {
+    return getSaveUser()?.role ?? null
+}
+
+// true solo si el usuario en sesión es administrador.
+export function isAdmin() {
+    return getUserRole() === "ROLE_ADMIN"
+}
+
 export function getAuthorizationHeader() {
     const token = getSaveToken()
     const user = getSaveUser()

@@ -166,6 +166,26 @@
   outline: none;
 }
 
+/* ===== APLICAR CUPÓN DE DESCUENTO ===== */
+.coupon-apply-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 4px 0 16px;
+  padding: 12px 14px;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  background: #faf9ff;
+}
+
+.coupon-apply-hint {
+  font-size: 0.8rem;
+  color: #6b7280;
+  flex: 1;
+  min-width: 220px;
+}
+
 /* ===== BÚSQUEDA ===== */
 .search-bar {
   display: flex;
