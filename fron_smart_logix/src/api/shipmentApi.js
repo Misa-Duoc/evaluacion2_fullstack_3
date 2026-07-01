@@ -34,3 +34,23 @@ export function getDispatchPointsRequest(authorizationHeader, email) {
         }
     })
 }
+
+// Obtiene el catalogo de descuentos disponibles para canjear con puntos.
+export function getRewardCatalogRequest(authorizationHeader) {
+    return httpRequest("/api/shipments/points/catalog", {
+        headers: {
+            Authorization: authorizationHeader
+        }
+    })
+}
+
+// Canjea los puntosDespacho de un correo por el descuento elegido.
+export function redeemPointsRequest(authorizationHeader, email, rewardType) {
+    return httpRequest(`/api/shipments/points/${encodeURIComponent(email)}/redeem`, {
+        method: "POST",
+        headers: {
+            Authorization: authorizationHeader
+        },
+        body: JSON.stringify({ rewardType })
+    })
+}

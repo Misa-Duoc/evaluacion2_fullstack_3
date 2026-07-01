@@ -38,8 +38,8 @@ function DispatchPointsPage() {
             </div>
 
             <p style={{ color: "#6b7280", fontSize: "0.875rem", marginTop: "-8px", marginBottom: "20px" }}>
-                Cada vez que un correo realiza un nuevo despacho, sus <strong>puntosDespacho</strong> aumentan en +5.
-                El primer despacho de un correo inicia en 0 puntos.
+                Desde el primer despacho que realiza un correo, sus <strong>puntosDespacho</strong> aumentan en +5.
+                Cada despacho adicional de ese mismo correo vuelve a sumar +5 puntos.
             </p>
 
             <form className="search-bar" onSubmit={handleSearch}>

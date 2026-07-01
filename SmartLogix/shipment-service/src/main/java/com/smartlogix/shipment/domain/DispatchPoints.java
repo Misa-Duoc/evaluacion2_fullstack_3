@@ -14,8 +14,8 @@ import java.time.OffsetDateTime;
  * Representa el acumulado de "puntosDespacho" de un correo electronico.
  *
  * Regla de negocio:
- *  - La primera vez que un correo realiza un despacho, el registro se crea con puntosDespacho = 0.
- *  - Cada vez que ese mismo correo vuelve a realizar un despacho, puntosDespacho se incrementa en +5.
+ *  - Desde el primer despacho que realiza un correo, se otorgan +5 puntosDespacho.
+ *  - Cada despacho adicional que realice ese mismo correo vuelve a sumar +5 puntos.
  */
 @Entity
 @Table(name = "dispatch_points")

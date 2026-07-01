@@ -1,4 +1,11 @@
-import { getShipmentRequest, getShipmentByTrackingRequest, updateShipmentStatusRequest, getDispatchPointsRequest } from "../api/shipmentApi"
+import {
+    getShipmentRequest,
+    getShipmentByTrackingRequest,
+    updateShipmentStatusRequest,
+    getDispatchPointsRequest,
+    getRewardCatalogRequest,
+    redeemPointsRequest
+} from "../api/shipmentApi"
 import { getRequiredAuthorizationHeader } from "./authService"
 
 export async function getShipment() {
@@ -25,4 +32,22 @@ export async function getDispatchPoints(email) {
 
     const authorizationHeader = getRequiredAuthorizationHeader()
     return getDispatchPointsRequest(authorizationHeader, cleanEmail)
+}
+
+export async function getRewardCatalog() {
+    const authorizationHeader = getRequiredAuthorizationHeader()
+    return getRewardCatalogRequest(authorizationHeader)
+}
+
+export async function redeemPoints(email, rewardType) {
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanEmail) {
+        throw new Error("Ingrese un correo para canjear sus puntos")
+    }
+    if (!rewardType) {
+        throw new Error("Seleccione un descuento para canjear")
+    }
+
+    const authorizationHeader = getRequiredAuthorizationHeader()
+    return redeemPointsRequest(authorizationHeader, cleanEmail, rewardType)
 }
