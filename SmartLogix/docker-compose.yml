@@ -130,3 +130,21 @@ services:
       start_period: 45s
     ports:
       - "8080:8080"
+
+  frontend:
+    build:
+      context: ../fron_smart_logix
+      dockerfile: Dockerfile
+    image: smartlogix/frontend:latest
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    ports:
+      - "5173:80"

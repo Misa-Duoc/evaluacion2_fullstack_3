@@ -1,4 +1,4 @@
-import { loginRequest } from "../api/authApi"
+import { loginRequest, validateTokenRequest } from "../api/authApi"
 
 export async function login({ credential, password }) {
     const cleanCredential = credential.trim()
@@ -79,6 +79,38 @@ export function getRequiredAuthorizationHeader() {
 export function clearLogin() {
     localStorage.removeItem("token")
     localStorage.removeItem("user")
+}
+
+// Confirma contra el backend que el token guardado sigue siendo valido y
+// devuelve el rol REAL (del JWT firmado). Se usa al montar la app (incluye
+// F5) para no pintar nunca el menu/rol de localStorage sin antes verificar
+// que coincide con lo que el backend realmente autoriza. Si el token no es
+// valido, limpia la sesion local y devuelve null.
+export async function validateSession() {
+    const token = getSaveToken()
+    if (!token) {
+        return null
+    }
+
+    try {
+        const authorizationHeader = getRequiredAuthorizationHeader()
+        const response = await validateTokenRequest(authorizationHeader)
+
+        // Se resincroniza localStorage con el rol real por si estaba
+        // desactualizado o habia sido manipulado manualmente.
+        const currentUser = getSaveUser()
+        localStorage.setItem("user", JSON.stringify({
+            ...currentUser,
+            username: response.username,
+            role: response.role,
+            tokenType: response.tokenType
+        }))
+
+        return response.role
+    } catch {
+        clearLogin()
+        return null
+    }
 }
 
 export async function register({ username, email, password }) {
