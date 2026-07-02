@@ -21,3 +21,13 @@ export function registerRequest({ username, email, password }) {
         })
     })
 }
+
+// Valida el token actual contra el backend y devuelve el rol REAL
+// (extraido del JWT firmado), no el que quede guardado en localStorage.
+export function validateTokenRequest(authorizationHeader) {
+    return httpRequest("/api/auth/validate", {
+        headers: {
+            Authorization: authorizationHeader
+        }
+    })
+}
