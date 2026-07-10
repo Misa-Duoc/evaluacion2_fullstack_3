@@ -29,6 +29,7 @@
         <module>order-service</module>
         <module>inventory-service</module>
         <module>shipment-service</module>
+        <module>chat-service</module>
     </modules>
 
     <dependencyManagement>
