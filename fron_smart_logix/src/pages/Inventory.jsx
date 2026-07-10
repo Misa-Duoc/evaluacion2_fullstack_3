@@ -7,6 +7,8 @@ const EMPTY_FORM = {
     availableQuantity: "", reorderLevel: ""
 }
 
+const LOW_STOCK_THRESHOLD = 10
+
 function InventoryPage() {
 
     const [inventory, setInventory] = useState([]);
@@ -18,6 +20,8 @@ function InventoryPage() {
     const [formMessage, setFormMessage] = useState("");
     const [formLoading, setFormLoading] = useState(false);
     const [actionMessage, setActionMessage] = useState("");
+
+    const lowStockCount = inventory.filter((item) => item.availableQuantity < LOW_STOCK_THRESHOLD).length;
 
     useEffect(() => {
         async function loadInventory() {
@@ -44,7 +48,7 @@ function InventoryPage() {
             const payload = {
                 sku: form.sku, productName: form.productName,
                 warehouseCode: form.warehouseCode,
-                availableQuantity: Number(form.availableQuantity),
+                initialQuantity: Number(form.availableQuantity),
                 reorderLevel: Number(form.reorderLevel)
             }
             const created = await createInventoryItem(payload)
@@ -90,7 +94,18 @@ function InventoryPage() {
     return (
         <main>
             <div className="page-header">
-                <h2>🏭 Inventario</h2>
+                <h2>
+                    🏭 Inventario
+                    {lowStockCount > 0 && (
+                        <span
+                            className="low-stock-notification"
+                            title={`${lowStockCount} producto(s) con stock bajo (< ${LOW_STOCK_THRESHOLD} unidades)`}
+                        >
+                            🔔
+                            <span className="low-stock-notification-badge">{lowStockCount}</span>
+                        </span>
+                    )}
+                </h2>
                 <button
                     className={showForm ? "btn-sl-secondary" : "btn-sl-primary"}
                     type="button"
@@ -157,7 +172,15 @@ function InventoryPage() {
                                     <td><strong>{item.sku}</strong></td>
                                     <td>{item.productName}</td>
                                     <td>{item.warehouseCode}</td>
-                                    <td>{item.availableQuantity}</td>
+                                    <td>
+                                        {item.availableQuantity < LOW_STOCK_THRESHOLD ? (
+                                            <span className="low-stock-value" title={`Stock bajo (< ${LOW_STOCK_THRESHOLD} unidades)`}>
+                                                ⚠️ {item.availableQuantity}
+                                            </span>
+                                        ) : (
+                                            item.availableQuantity
+                                        )}
+                                    </td>
                                     <td>{item.reservedQuantity}</td>
                                     <td>{item.reorderLevel}</td>
                                     <td style={{ fontSize: "0.78rem", color: "#6b7280" }}>{item.updatedAt}</td>

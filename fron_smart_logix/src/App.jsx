@@ -3,6 +3,7 @@ import './styles/layout.css'
 import LoginPage from './pages/Login'
 import RegisterPage from './pages/register/Register'
 import { clearLogin, getSaveToken, getSaveUser, validateSession } from './service/authService'
+import { getInventory } from './service/inventoryService'
 import { AUTH_REJECTED_EVENT } from './api/httpClient'
 import ShipmentsPage from './pages/Shipments'
 import OrderPage from './pages/Order'
@@ -10,6 +11,7 @@ import InventoryPage from './pages/Inventory'
 import DispatchPointsPage from './pages/DispatchPoints'
 import CanjePuntosPage from './pages/CanjePuntos'
 import DescuentoPage from './pages/Descuento'
+import ChatWidget from './components/ChatWidget'
 
 // Cada sección declara qué roles pueden verla.
 //  - ROLE_USER: solo puede INGRESAR un cupón de descuento y VISUALIZAR los envíos.
@@ -22,6 +24,11 @@ const PRIVATE_ROUTER = [
   { key: "points",    label: "⭐ Puntos",         hash: "#/points",    roles: ["ROLE_ADMIN"] },
   { key: "redeem",    label: "🎁 Canje de ptos", hash: "#/redeem",    roles: ["ROLE_ADMIN"] }
 ]
+
+// Mismo umbral usado en la pantalla de Inventario para marcar stock bajo.
+const LOW_STOCK_THRESHOLD = 10
+// Intervalo para refrescar el conteo de stock bajo en el menú lateral.
+const LOW_STOCK_POLL_MS = 30000
 
 function getRouterFromHash() {
   return window.location.hash.replace("#/", "")
@@ -39,6 +46,7 @@ function App() {
   const [showRegister, setShowRegister] = useState(false)
   const [current, setCurrent]           = useState(getRouterFromHash())
   const [sessionNotice, setSessionNotice] = useState(null)
+  const [lowStockCount, setLowStockCount] = useState(0)
 
   useEffect(() => {
     function handleHashChange() {
@@ -103,6 +111,38 @@ function App() {
       window.removeEventListener(AUTH_REJECTED_EVENT, handleAuthRejected)
     }
   }, [])
+
+  useEffect(() => {
+    // Se consulta el inventario en segundo plano (independiente de si el
+    // usuario entra a la sección Inventario) para poder avisar en el menú
+    // lateral cuando algún producto quede con stock bajo. Solo aplica para
+    // ROLE_ADMIN, que es quien tiene acceso a esa sección.
+    if (authStatus !== "in" || role !== "ROLE_ADMIN") {
+      setLowStockCount(0)
+      return
+    }
+
+    let cancelled = false
+
+    async function checkLowStock() {
+      try {
+        const items = await getInventory()
+        if (cancelled) return
+        const count = items.filter((item) => item.availableQuantity < LOW_STOCK_THRESHOLD).length
+        setLowStockCount(count)
+      } catch {
+        // Si falla (sesión vencida, red, etc.) simplemente no se actualiza
+        // el badge; el resto de la app ya maneja sesiones inválidas aparte.
+      }
+    }
+
+    checkLowStock()
+    const intervalId = setInterval(checkLowStock, LOW_STOCK_POLL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(intervalId)
+    }
+  }, [authStatus, role, current])
 
   function canAccess(routeKey, currentRole) {
     const route = PRIVATE_ROUTER.find((r) => r.key === routeKey)
@@ -186,6 +226,14 @@ function App() {
                 className={current === route.key ? "active" : ""}
               >
                 {route.label}
+                {route.key === "inventory" && lowStockCount > 0 && (
+                  <span
+                    className="sidebar-low-stock-badge"
+                    title={`${lowStockCount} producto(s) con stock bajo`}
+                  >
+                    {lowStockCount}
+                  </span>
+                )}
               </a>
             ))}
           </nav>
@@ -200,6 +248,8 @@ function App() {
         <div className="main-content">
           {renderPrivate(role)}
         </div>
+
+        <ChatWidget />
       </div>
     )
   }

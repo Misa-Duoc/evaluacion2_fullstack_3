@@ -67,6 +67,30 @@
   color: #fff;
 }
 
+/* ===== BADGE DE STOCK BAJO (MENÚ LATERAL) ===== */
+.sidebar-low-stock-badge {
+  margin-left: auto;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+  animation: sidebar-low-stock-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes sidebar-low-stock-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
 /* ===== LOGOUT ===== */
 .sidebar-footer {
   padding: 16px 12px;
